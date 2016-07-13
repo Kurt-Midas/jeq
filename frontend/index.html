@@ -1,0 +1,121 @@
+<!doctype html>
+<head>
+	<meta charset="utf-8">
+	<title>JEQ</title>
+	<script src="/static/vue/dist/vue.js"></script>
+	<script src="/static/jquery/dist/jquery.js"></script>
+	<link rel="stylesheet" href="/static/bootstrap/dist/css/bootstrap.min.css"></link>
+	<script src="/static/bootstrap/dist/js/bootstrap.min.js"></script>
+</head>
+
+<body id="app">
+<div class="container-fluid">
+<row>
+	<div class="col-md-12">
+		<h1>Hello and stuff</h1>
+	</div>
+</row>
+<row>
+	<div class="col-md-8">
+		<table class="table table-striped">
+			<tr>
+				<th>Item Name</th>
+				<th>Alt Volume</th>
+				<th>Alt Avg Price</th>
+				<th>JEQ Buy</th>
+				<th>Capturable</th>
+				<th>JEQ Sell</th>
+				<th>Capturable</th>
+			</tr>
+			<tr v-for="item in itemDetails">
+				<td>{{item.name}}</td>
+				<td>{{marketHistory[item.id].other.avgVolume | currency '' 1}}</td>
+				<td>{{marketHistory[item.id].other.avgPrice | currency '' 2}}</td>
+				<td>{{calcs[item.id].jeqBuy | currency '' 2}}</td>
+				<td>{{calcs[item.id].capturableBuy | currency '' 2}}</td>
+				<td>{{calcs[item.id].jeqSell | currency '' 2}}</td>
+				<td>{{calcs[item.id].capturableSell | currency '' 2}}</td>
+			</tr>
+		</table>
+
+	</div>
+	<div class="col-md-4">
+		<button v-on:click="updateData">Reverse Message</button>
+		<input type="number" v-model="brokerFee">
+		<p>{{brokerFee}}</p>
+		<!-- <h1>calcs</h1>
+		<p>{{calcs | json 4}}</p>
+		<h1>itemDetails</h1>
+		<p>{{itemDetails | json 4}}</p>
+		<h1>marketOrders</h1>
+		<p>{{marketOrders | json 4}}</p>
+		<h1>marketHistory</h1>
+		<p>{{marketHistory | json 4}}</p> -->
+	</div>
+</row>
+</div>
+
+<script>
+new Vue({
+	el: '#app',
+	data: {
+		itemDetails : [[.ItemDetails]],
+		pricePerM3 : 500,
+		marketOrders : [[.MarketOrders]], //{}orderDataSystems
+		marketHistory : [[.MarketHistory]], //{}historyDataSystems
+		brokerFee : 3,
+		salesTax : 2,
+		calcs : {}
+	},
+	methods: {
+		updateData : function(){
+			console.log("Fired updateData")
+			for (var key in this.itemDetails){
+				Vue.set(this.calcs, key, {jeqBuy:0.0, capturableBuy:0.0, jeqSell:0.0, capturableSell:0.0})
+				this.calcs[key].jeqBuy = this.marketOrders[key].jita.buy.bestPrice * (1 + (this.brokerFee*2 + this.salesTax)/100) + this.pricePerM3 * this.itemDetails[key].volume
+				this.calcs[key].capturableBuy = this.marketHistory[key].other.avgVolume * (this.calcs[key].jeqBuy - this.marketHistory[key].other.avgPrice)
+				console.log("capturableBuy stuff :: " + this.marketHistory[key].other.avgVolume + ", " + this.calcs[key].jeqBuy + ", " + this.marketHistory[key].other.avgPrice)
+				this.calcs[key].jeqSell = this.marketOrders[key].jita.sell.bestPrice * (1 + (this.brokerFee*2 + this.salesTax)/100) + this.pricePerM3 * this.itemDetails[key].volume
+				this.calcs[key].capturableSell = this.marketHistory[key].other.avgVolume * (this.calcs[key].jeqSell - this.marketHistory[key].other.avgPrice)
+				console.log("Calcs :: " + JSON.stringify(this.calcs))
+				// this.itemDetails[key].jeqBuy = this.marketOrders[key].jita.buy.bestPrice * (1 + (this.brokerFee*2 + this.salesTax)/100) + this.pricePerM3 * this.itemDetails[key].volume
+				// this.itemDetails[key].capturableBuy = this.marketHistory[key].avgVolume * (this.itemDetails[key].jeqBuy - this.marketHistory[key].avgPrice)
+				// this.itemDetails[key].jeqSell = this.marketOrders[key].jita.sell.bestPrice * (1 + (this.brokerFee*2 + this.salesTax)/100) + this.pricePerM3 * this.itemDetails[key].volume
+				// this.itemDetails[key].capturableSell = this.marketHistory[key].avgVolume * (this.itemDetails[key].jeqSell - this.marketHistory[key].avgPrice)
+				// console.log("Inside updateData's loop at key :: " + key + " :: and details :: " + JSON.stringify(this.itemDetails[key]))
+			}
+		}
+	},
+	ready : function(){
+		this.updateData()
+	}
+})
+// vm.updateData();
+</script>
+</body>
+
+<!--
+type templateData struct {
+	ItemDetails map[int]myItemDetails `json:"itemDetails"`
+	PricePerM3  float64               `json:"pricePerM3"`
+	MarketInfo  map[int]marketData    //types
+}
+
+type marketData struct {
+	Jita  orderData
+	Other orderData
+}
+
+type orderData struct {
+	Buy struct {
+		Orders    []crest.MarketOrderType
+		BestPrice float64
+		Volume    int
+	}
+	Sell struct {
+		Orders    []crest.MarketOrderType
+		BestPrice float64
+		Volume    int
+	}
+}
+-->
